@@ -15,7 +15,7 @@ column = ('name',
           'url_picture')
 
 # 返回一个生成器对象
-authors = scholarly.search_author("a a karpunin")
+authors = scholarly.search_author("a goriacheva,national research nuclear university mephi")
 
 author_list = [str(a) for a in authors]
 print(len(author_list))

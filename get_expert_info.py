@@ -1,70 +1,64 @@
-import scholarly
-import requests
-from PIL import Image
-import io
-import csv
 import os
+import csv
+import scholarly
 
-# write the file head
-strFileName = "./export_expert_info.csv"
-file = open(strFileName, 'w')
-valueStr = "\"expert\",\"citedby\",\"hindex\",\"hindex5y\",\"i10index\",\"i10index5y\",\"name\",\"affiliation\",\"interests\",\"email\"\n"
-file.write(valueStr)
-file.close()
 
-keywords = ["blockchain", "Blockchain"]
+output_file = os.path.join(os.getcwd(), 'result_blockchain.csv')
+with open(output_file, 'w', encoding='utf-8', newline='') as f:
+    writer = csv.writer(f)
+    writer.writerow(['expert', 'affiliation', 'interests', 'email', 'phone', 'address',
+                     'country', 'language', 'position', 'name', 'citedby', 'hindex', 'hindex5y',
+                     'i10index', 'i10index5y', 'url_picture'])
 
-# input the expert name list
-filename = os.path.join(os.getcwd(), 'blockchain_expert.csv')
-with open(filename, "r", encoding='ISO-8859-1') as f:
-    reader = list(csv.reader(f))
 
-names = [n[0].strip() for n in reader][1:]
+keywords = {'blockchain', 'Blockchain'}
 
-for name in names:
-    # get info from google
-    authors = scholarly.search_author(name)
-    jsonAuthors = [a.fill() for a in authors]
+input_file = os.path.join(os.getcwd(), 'blockchain_expert.csv')
+dict_input = {
+    'name': 0,
+    'affiliation': 1,
+    'interests': 2,
+}
+with open(input_file, 'r', encoding='ISO-8859-1') as f:
+    reader = csv.reader(f)
+    # 跳过首行
+    next(reader)
 
-    strInterest = ""
-    Author = None
-    for author in jsonAuthors:
-        # 研究兴趣
-        interestsCount = len(author.interests)
-        strInterest = ""
-        index = 0
-        while index < interestsCount and Author is None:
-            interest = author.interests[index]
-            if interest in keywords:
-                Author = author
-            strInterest += "%s" % interest
-            if index < interestsCount - 1:
-                strInterest += "|"
-            index += 1
-        print(Author, strInterest)
+    for r in reader:
+        name = r[dict_input['name']].strip()
 
-    if Author is None:
-        continue
+        # 找到所有同名作者
+        authors = {a.fill() for a in scholarly.search_author(name)}
+        print(name)
+        print('Author name', name, 'has', len(authors), 'candidate(s)')
 
-    print("search the expert: " + name)
-    # 输出到文件
-    strFileName = "./export_expert_info.csv"
-    file = open(strFileName, 'a')
-    valueStr = "\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"\n" % (name, Author.citedby, Author.hindex, Author.hindex5y, Author.i10index, Author.i10index5y, Author.name, Author.affiliation,strInterest, Author.email)
-    file.write(valueStr)
-    file.close()
+        # 由研究兴趣确定目标学者
+        author_shoot = None
+        for author in authors:
+            if len(keywords.intersection(author.interests)) > 0:
+                author_shoot = author
+                break
 
-    iurl = 'https://scholar.google.com/citations?view_op=medium_photo&user=%s' % Author.id
-    print(iurl)
-    # get the expert' photo
-    try:
-        req = requests.get(iurl)
-        data = req.content
-        tmpIm = io.StringIO(data)
-        im = Image.open(tmpIm)
+        # 没有找到相关学者，切换到下一个名字
+        if author_shoot is None:
+            print(name, "no shoot.")
+            print("-----------------------------------")
+            with open(output_file, 'a', encoding='utf-8', newline='') as f1:
+                writer = csv.writer(f1)
+                writer.writerow([name, r[dict_input['affiliation']], r[dict_input['interests']], '', '', '',
+                                 '', '', '', ''])
+            continue
+        # 找到目标学者，进行下一步操作
+        else:
+            print("Shoot author:", author_shoot)
+            print("-----------------------------------")
 
-        tm = './image/%s.%s' % (name, im.format.lower())
-        with open(tm, 'wb') as fp:
-            fp.write(data)
-    except requests.ConnectionError as e:
-        print(e)
+            strInterests = ', '.join(author_shoot.interests)
+
+            with open(output_file, 'a', encoding='utf-8', newline='') as f1:
+                writer = csv.writer(f1)
+                writer.writerow([name, author_shoot.affiliation, strInterests, author_shoot.email, '', '',
+                                 '', '', '', author_shoot.name, author_shoot.citedby, author_shoot.hindex,
+                                 author_shoot.hindex5y, author_shoot.i10index, author_shoot.i10index5y,
+                                 author_shoot.url_picture])
+
