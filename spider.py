@@ -26,9 +26,8 @@ ed = {
 }
 
 
-def spider(workbook, line_begin, line_end):
+def spider(sheet, line_begin, line_end):
     print(line_begin, line_end)
-    sheet = workbook.active
     for index in range(line_begin, line_end + 1):
         i_str = str(index)
         # 获得已有信息
@@ -87,19 +86,19 @@ def spider(workbook, line_begin, line_end):
 
 if __name__ == "__main__":
     # counts = 5663
-    counts = 100
+    counts = 10
     num_of_process = 1
     quarter = counts // num_of_process
 
     wb = openpyxl.load_workbook(excel_file)
-
+    sheet = wb.active
     arg_list = [
-        (wb, 2, quarter),
-        (wb, quarter + 1, 2 * quarter),
-        (wb, 2 * quarter + 1, 3 * quarter),
-        (wb, 3 * quarter + 1, 4 * quarter),
-        (wb, 4 * quarter + 1, 5 * quarter),
-        (wb, 5 * quarter + 1, counts),
+        (sheet, 2, quarter),
+        (sheet, quarter + 1, 2 * quarter),
+        (sheet, 2 * quarter + 1, 3 * quarter),
+        (sheet, 3 * quarter + 1, 4 * quarter),
+        (sheet, 4 * quarter + 1, 5 * quarter),
+        (sheet, 5 * quarter + 1, counts),
     ]
 
     for i in range(1, num_of_process + 1):

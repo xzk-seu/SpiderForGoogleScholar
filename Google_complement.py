@@ -32,7 +32,7 @@ proxies = {"http": "127.0.0.1:1080", "https": "127.0.0.1:1080"}
 
 # 爬取网页返回soup对象
 def make_soup(payloads):
-    html = ''
+    content = ''
     try:
         html = requests.get(
             url,
@@ -41,11 +41,12 @@ def make_soup(payloads):
             proxies=proxies,
         )
         html.encoding = "utf-8"
+        content = html.text
     except Exception as e:
         print(e)
 
-    if html is not None and len(html) > 0:
-        return BeautifulSoup(html, 'lxml')
+    if content is not None and len(content) > 0:
+        return BeautifulSoup(content, 'lxml')
     else:
         return None
 
@@ -118,10 +119,10 @@ def get_country(affiliation):
     payloads = {
         "q": 'what country is ' + affiliation.split(';')[0] + ' in?',
     }
-    html = get_html(payloads=payloads)
-    if html is None or len(html) < 1:
+
+    soup = make_soup(payloads)
+    if soup is None:
         return ''
-    soup = BeautifulSoup(html, 'lxml')
     tag_results = soup.select("div[class='Z0LcW']")
     country = tag_results[0].getText() if len(tag_results) > 0 else ''
     return country
@@ -182,4 +183,4 @@ def get_position(key_words):
 
 
 if __name__ == "__main__":
-    get_country('Northy')
+    get_country('national research nuclear university mephi')
