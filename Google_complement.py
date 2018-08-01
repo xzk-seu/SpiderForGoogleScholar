@@ -1,6 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 import re
+import time
 
 headers = {
     'accept': '*/*',
@@ -14,15 +15,39 @@ url = 'https://www.google.com/search'
 proxies = {"http": "127.0.0.1:1080", "https": "127.0.0.1:1080"}
 
 
-def get_html(payloads):
-    html = requests.get(
-        url,
-        params=payloads,
-        headers=headers,
-        proxies=proxies,
-    )
-    html.encoding = "utf-8"
-    return html.text
+# def get_html(payloads):
+#     try:
+#         html = requests.get(
+#             url,
+#             params=payloads,
+#             headers=headers,
+#             proxies=proxies,
+#         )
+#         html.encoding = "utf-8"
+#         return html.text if html.text is not None else ''
+#     except Exception as e:
+#         print(e)
+#         time.sleep(5)
+
+
+# 爬取网页返回soup对象
+def make_soup(payloads):
+    html = ''
+    try:
+        html = requests.get(
+            url,
+            params=payloads,
+            headers=headers,
+            proxies=proxies,
+        )
+        html.encoding = "utf-8"
+    except Exception as e:
+        print(e)
+
+    if html is not None and len(html) > 0:
+        return BeautifulSoup(html, 'lxml')
+    else:
+        return None
 
 
 def get_email(key_words):
@@ -30,7 +55,9 @@ def get_email(key_words):
         "q": key_words + ' email',
     }
 
-    soup = BeautifulSoup(get_html(payloads=payloads), 'lxml')
+    soup = make_soup(payloads)
+    if soup is None:
+        return ''
     tag_results = soup.select("span[class='st']")
     results = {str(tr).replace("<em>", '').replace(r"</em>", '') for tr in tag_results}
     emailRegex = re.compile(r"""([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+(\.[a-zA-Z]{2,4}))""", re.VERBOSE)
@@ -50,7 +77,9 @@ def get_phone(key_words):
         "q": key_words + ' phone',
     }
 
-    soup = BeautifulSoup(get_html(payloads=payloads), 'lxml')
+    soup = make_soup(payloads)
+    if soup is None:
+        return ''
     tag_results = soup.select("span[class='st']")
     results = {str(tr)
                .replace(r"<em>", '')
@@ -74,9 +103,12 @@ def get_phone(key_words):
 
 def get_address(affiliation):
     payloads = {
-        "q": 'where is ' + affiliation.split(';')[0] + '?',
+        "q": 'where is ' + affiliation.split(';')[0] + 'located?',
     }
-    soup = BeautifulSoup(get_html(payloads=payloads), 'lxml')
+
+    soup = make_soup(payloads)
+    if soup is None:
+        return ''
     tag_results = soup.select("div[class='Z0LcW']")
     address = tag_results[0].getText() if len(tag_results) > 0 else ''
     return address
@@ -86,7 +118,10 @@ def get_country(affiliation):
     payloads = {
         "q": 'what country is ' + affiliation.split(';')[0] + ' in?',
     }
-    soup = BeautifulSoup(get_html(payloads=payloads), 'lxml')
+    html = get_html(payloads=payloads)
+    if html is None or len(html) < 1:
+        return ''
+    soup = BeautifulSoup(html, 'lxml')
     tag_results = soup.select("div[class='Z0LcW']")
     country = tag_results[0].getText() if len(tag_results) > 0 else ''
     return country
@@ -96,7 +131,10 @@ def get_language(country):
     payloads = {
         "q": 'what language do they speak in ' + country + '?',
     }
-    soup = BeautifulSoup(get_html(payloads=payloads), 'lxml')
+
+    soup = make_soup(payloads)
+    if soup is None:
+        return ''
     tag_results = soup.select("div[class='Z0LcW']")
     language = tag_results[0].getText() if len(tag_results) > 0 else ''
     return language
@@ -107,7 +145,9 @@ def get_position(key_words):
         "q": key_words + ' professor or researcher or scientist',
     }
 
-    soup = BeautifulSoup(get_html(payloads=payloads), 'lxml')
+    soup = make_soup(payloads)
+    if soup is None:
+        return ''
     tag_results = soup.select("span[class='st']")
     results = {str(tr)
                .replace(r"<em>", '')
